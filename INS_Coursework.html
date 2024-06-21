@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>INS Coursework - TFL crowding information</title>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+
+
+        <!--Function to multiply the crowding percentage by 100-->
+        <script>
+            function multiplyCrowdingPercentageBy100(xhttp) {
+                const response = JSON.parse(xhttp.responseText);
+                var headers = response.timeBands; //Gets timeBands header array
+
+                //Loop through each timeBand and multipy the percentage by 100
+                for(var i = 0; i < headers.length; i++){
+                    headers[i].percentageOfBaseLine = headers[i].percentageOfBaseLine*100;
+                }
+            }
+        </script>
+
+        <!--Function to create text for time band crowding percentage-->
+        <script>
+            function createTimeBandCrowdingText() {
+                //Insert text in inner html for the label with id: crowdingPercentage
+                document.getElementById("crowdingPercentage").innerHTML = "Time Band Crowding Percentage";
+            }
+        </script>
+
+        <!--Function to create peak times text-->
+        <script>
+            function createPeakTimesText(xhttp) {
+                const response = JSON.parse(xhttp.responseText);
+                //Insert AMPeak text with the correct AM Peak data.
+                document.getElementById("AMPeak").innerHTML = "AM Peak: " + response.amPeakTimeBand;
+                //Insert PMPeak text with the correct PM Peak data.
+                document.getElementById("PMPeak").innerHTML = "PM Peak: " + response.pmPeakTimeBand;
+            }
+        </script>
+
+        <!--Function to create bar chart for crowding-->
+        <script>
+            //Initalise chart to null to destory chart if it already exists.
+            let chart = null;
+
+            function createBarChart(xhttp) {
+                const response = JSON.parse(xhttp.responseText);
+                
+                //Retrieve array containing timeBand and percentage arrays
+                var headers = response.timeBands;
+                
+                //Label array
+                const labels = [];
+                //Crowding array
+                const crowding = [];
+                const barChart = document.getElementById("barChart");
+
+                /*Loop through timeBands array and push the timeBand
+                and percentage data into the labels and crowding array respectivley*/
+                for(var i = 0; i < headers.length; i++){
+                    var percentageOfBaseLineX100 = headers[i].percentageOfBaseLine*100;
+                    var fixedpercentageOfBaseLineX100 = percentageOfBaseLineX100.toFixed();
+                    crowding.push(fixedpercentageOfBaseLineX100);
+
+                    var times = headers[i].timeBand;
+                    labels.push(times);
+                }
+
+                //Create data object for bar chart
+                const data = { 
+                    labels: labels,
+                    datasets: [{
+                        label: "Crowding",
+                        data: crowding,
+                    }]
+                };
+
+                //Config for bar chart
+                const config = {    
+                    type: 'bar',
+                    data: data,
+                    options: {
+                        scales: {
+                        y: {
+                            beginAtZero: true,
+                            suggestedMax: 100
+                        }
+                        }
+                    },
+                };
+                
+                //Check if bar chart exists and then destory
+                if(chart != null){
+                    chart.destroy();
+                }
+                //Create new bar chart
+                chart = new Chart(barChart, config);
+            }
+        </script>
+
+        <!--Function to create table-->
+        <script>
+            function createTable(xhttp) {
+                const response = JSON.parse(xhttp.responseText);
+                var headers = response.timeBands;
+                var table = document.getElementById("timeBandTable");
+
+                //Check if table contains data then make it empty
+                if(table != null){
+                    table.innerHTML = "";
+                }
+
+                /*Loop through timeBands array and insert data from headers into rows*/
+                for(var i = 0; i < headers.length; i++){
+                    var percentageOfBaseLine = headers[i].percentageOfBaseLine*100;
+                    var timeBand = headers[i].timeBand;
+                    const twoDpPercentage = percentageOfBaseLine.toFixed();
+
+                    // Create an empty <tr> element and add it to the current position of the table
+                    var row = table.insertRow(i);
+
+                    // Insert new cells <td> elements at the 1st and 2nd position of the new <tr> element
+                    var tableData1 = row.insertCell(0);
+                    var tableData2 = row.insertCell(1);
+
+                    // Add the json data to the new cells
+                    tableData1.innerHTML = timeBand;
+                    tableData2.innerHTML = twoDpPercentage;
+                }
+            }
+        </script>
+
+        <!--Function to loadJson-->
+        <script>
+            function loadJSON() {
+                const xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function () {
+                    if(this.readyState == 4 && this.status == 200) {
+                        multiplyCrowdingPercentageBy100(xhttp);
+                        createTimeBandCrowdingText();
+                        createPeakTimesText(xhttp);
+                        createTable(xhttp);
+                        createBarChart(xhttp);
+                    }
+                }
+                //Gets NaPTAN ID of selected station
+                var station = document.getElementById("Stations").value;
+                //Gets the day of selected day 
+                var dayOfWeek = document.getElementById("DayOfWeek").value;
+                //Performs a GET on url with the selected station and day 
+                xhttp.open('GET', 'https://api.tfl.gov.uk/crowding/'+station+'/'+dayOfWeek);
+                //Set the app_key
+                xhttp.setRequestHeader("app_key", "cfaeaccfd2b34fd78b97642182097a05");
+                xhttp.send();
+            }
+        </script>
+    </head>
+    <body>
+        <!--Header text about crowding info-->
+        <div>
+            <h1>View crowding info at tube stations</h1><br>
+        </div>
+
+        <!--Select buttons for stations and days of the week-->
+        <div>
+            <label for="Stations">Submit:</label>
+
+            <select name="Stations" id="Stations">
+                <option value="940GZZLUPAC">Paddington</option>
+                <option value="940GZZLUKSX">King’s Cross St Pancras</option>
+                <option value="940GZZLUEUS">Euston</option>
+                <option value="940GZZLUWLO">Waterloo</option>
+                <option value="940GZZLULNB">London Bridge</option>
+                <option value="940GZZLULVT">Liverpool Street</option>
+            </select> 
+
+            <label for="DayOfWeek">Day of week:</label>
+
+            <select name="DayOfWeek" id="DayOfWeek">
+                <option value="mon">Monday</option>
+                <option value="tue">Tuesday</option>
+                <option value="wed">Wednesday</option>
+                <option value="thu">Thurday</option>
+                <option value="fri">Friday</option>
+                <option value="sat">Saturday</option>
+                <option value="sun">Sunday</option>
+            </select>
+
+            <!--Button to display data for selected station and day-->
+            <button type="button" onclick="loadJSON()" >View crowding info!</button><br><br><br>
+        </div>
+
+        <div>
+            <!--Insert bar chart here-->
+            <canvas id="barChart"></canvas><br>
+        </div>
+
+        <div>
+            <!--Insert AM Peak data here-->
+            <label for="text" id="AMPeak"></label><br><br>
+            <!--Insert PM Peak data here-->
+            <label for="text" id="PMPeak"></label>
+        </div>
+        
+        <!--Header to display table-->
+        <div>
+            <h2>Table of crowding</h2>
+        </div>
+
+        <div>
+            <!--Insert table description text here-->
+            <label for="text" id="crowdingPercentage"></label>
+        </div>
+
+        <div>
+            <!--Insert table here-->
+            <table id="timeBandTable"></table>
+        </div>
+    </body>
+</html>
