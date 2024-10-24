@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <title>INS Coursework - TFL crowding information</title>
 
@@ -149,6 +149,8 @@
                 var station = document.getElementById("Stations").value;
                 //Gets the day of selected day 
                 var dayOfWeek = document.getElementById("DayOfWeek").value;
+                console.log(station);
+                console.log(dayOfWeek);
                 //Performs a GET on url with the selected station and day 
                 xhttp.open('GET', 'https://api.tfl.gov.uk/crowding/'+station+'/'+dayOfWeek);
                 //Set the app_key
